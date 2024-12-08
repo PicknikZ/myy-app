@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 
 	"encoding/json"
 
@@ -188,16 +187,14 @@ func uploadVideo(w http.ResponseWriter, r *http.Request) {
 }
 
 func downloadVideo(w http.ResponseWriter, r *http.Request) {
-
 	args := r.URL.Query()
 	if uid := args.Get("uid"); uid != "" {
-		filepath, err := getSingleFilePath(uid)
-		if err != nil {
-			fmt.Println("Err", err)
-			return
-		}
+		step := args.Get("step")
+		filename := args.Get("filename")
+		suffix := GetExtension(filename)
+		output := fmt.Sprintf("./%s/output%s.%s", uid, step, suffix)
 		// 打开文件
-		file, err := os.Open(filepath)
+		file, err := os.Open(output)
 		if err != nil {
 			http.Error(w, "File not found.", http.StatusNotFound)
 			return
@@ -331,41 +328,25 @@ func runCommand(w http.ResponseWriter, r *http.Request, cmdStr string, output st
 // getProgress 根据PID实时获取命令的进度
 func getProgress(w http.ResponseWriter, r *http.Request) {
 	uid := r.URL.Query().Get("uid")
-	output := r.URL.Query().Get("output")
+	filename := r.URL.Query().Get("filename")
+	suffix := GetExtension(filename)
+	step := r.URL.Query().Get("step")
 
-	filename := fmt.Sprintf("./%s/%s", uid, output)
-	_, err := os.Stat(filename)
+	output := fmt.Sprintf("./%s/output%s.%s", uid, step, suffix)
+	_, err := os.Stat(output)
 	if err != nil {
 		resp := ProgressResponse{Code: 0, Status: "wait"}
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
 
-	pidStr := r.URL.Query().Get("pid")
-	fmt.Println("pidStr", pidStr)
-	pid, err := strconv.Atoi(pidStr)
+	endFile := fmt.Sprintf("./%s/step%s.end", uid, step)
+	_, err = os.Stat(endFile)
 	if err != nil {
-		http.Error(w, "Invalid PID", http.StatusBadRequest)
-		return
-	}
-	// 检查进程是否存在
-	process, err := os.FindProcess(pid)
-	if err != nil {
-		// 如果进程不存在，返回{"data": 0, "status": "done"}
-		resp := ProgressResponse{Code: 0, Status: "done"}
-		json.NewEncoder(w).Encode(resp)
-		return
-	}
-	defer process.Release()
-
-	// 检查进程是否仍在运行
-	if err := process.Signal(syscall.Signal(0)); err != nil {
-		// 进程不存在或已结束，返回{"data": 0, "status": "done"}
-		resp := ProgressResponse{Code: 0, Status: "done"}
+		resp := ProgressResponse{Code: 0, Status: "running"}
 		json.NewEncoder(w).Encode(resp)
 	} else {
-		// 进程仍在运行，返回{"data": 0, "status": "running"}
-		resp := ProgressResponse{Code: 0, Status: "running"}
+		resp := ProgressResponse{Code: 0, Status: "done"}
 		json.NewEncoder(w).Encode(resp)
 	}
 }
@@ -373,28 +354,24 @@ func getProgress(w http.ResponseWriter, r *http.Request) {
 func processVideoParam(r *http.Request, step int) (cmdStr string, output string) {
 	args := r.URL.Query()
 	if uid := args.Get("uid"); uid != "" {
-		filepath, err := getSingleFilePath(uid)
-		fmt.Println("filepath:", filepath)
-		if err != nil {
-			fmt.Println("Error:", err)
-			return "", ""
-		}
-		suffix := GetExtension(filepath)
+		filename := args.Get("filename")
+		fmt.Println("filename:", filename)
+		suffix := GetExtension(filename)
 		if value := args.Get("value"); value != "" {
 			switch step {
 			case 1:
-				return fmt.Sprintf("/usr/local/bin/ffmpeg -i %s -pix_fmt yuv%sp output1.%s > cmd1.log", filepath, value, suffix), fmt.Sprintf("output2.%s", suffix)
+				return fmt.Sprintf("ffmpeg -i ./%s/%s -pix_fmt yuv%sp ./%s/output1.%s && touch ./%s/step1.end", uid, filename, value, uid, suffix, uid), fmt.Sprintf("output1.%s", suffix)
 				//return fmt.Sprintf("echo 123 %s %s %s", filepath, value, suffix)
 			case 2:
-				return fmt.Sprintf("ffmpeg -i %s -c:a copy output2.%s > cmd2.log", filepath, value), fmt.Sprintf("output2.%s", value)
+				return fmt.Sprintf("ffmpeg -i ./%s/%s -c:a copy ./%s/output2.%s && touch ./%s/step2.end", uid, filename, uid, value, uid), fmt.Sprintf("output2.%s", value)
 			case 3:
-				return fmt.Sprintf("ffmpeg -i %s -b:v %s output3.%s > cmd3.log", filepath, value, suffix), fmt.Sprintf("output2.%s", suffix)
+				return fmt.Sprintf("ffmpeg -i ./%s/%s -b:v %s ./%s/output3.%s && touch ./%s/step3.end", uid, filename, value, uid, suffix, uid), fmt.Sprintf("output3.%s", suffix)
 			case 4:
-				return fmt.Sprintf("ffmpeg -i %s -r %s output4.%s > cmd4.log", filepath, value, suffix), fmt.Sprintf("output2.%s", suffix)
+				return fmt.Sprintf("ffmpeg -i ./%s/%s -r %s ./%s/output4.%s && touch ./%s/step4.end", uid, filename, value, uid, suffix, uid), fmt.Sprintf("output4.%s", suffix)
 			case 5:
-				return fmt.Sprintf("ffmpeg -i %s -s %s output5.%s > cmd5.log", filepath, value, suffix), fmt.Sprintf("output2.%s", suffix)
+				return fmt.Sprintf("ffmpeg -i ./%s/%s -s %s ./%s/output5.%s && touch ./%s/step5.end", uid, filename, value, uid, suffix, uid), fmt.Sprintf("output5.%s", suffix)
 			case 6:
-				return fmt.Sprintf("ffmpeg -i %s -c:v %s output6.%s > cmd6.log", filepath, value, suffix), fmt.Sprintf("output2.%s", suffix)
+				return fmt.Sprintf("ffmpeg -i ./%s/%s -c:v %s ./%s/output6.%s && touch ./%s/step6.end", uid, filename, value, uid, suffix, uid), fmt.Sprintf("output6.%s", suffix)
 			}
 		}
 	}
