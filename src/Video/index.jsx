@@ -33,6 +33,7 @@ class Video extends React.Component {
       4: 'convertVideoFrameRate',
       5: 'changeVideoResolution',
       6: 'changeVideoCodecFormat',
+      7: 'extractAudio',
     };
     this.valueMap={
       1: '420',
@@ -49,27 +50,13 @@ class Video extends React.Component {
   }
 
 
- checkProcess = (step, suffix=null) => {
-    console.log('suffix', suffix)
+ checkProcess = (step, value=null) => {
     const params = parseParam(window.location.hash);
     const filename = params['filename']
-    const names = filename.split('.')
-    if (names.length != 2) {
-      return
-    }
-    let output;
-    if (step === 2) {
-      if (suffix !== null) {
-        output = `output${step}.${suffix}`
-      }else {
-        output = `output${step}.${this.state.data[step]}`
-      }
-    } else {
-      output = `output${step}.${names[1]}`
-    }
-    console.log('output', output)
+    const v = value ? value : this.state.data[step]
+    
     if (params['uid']) {
-     fetch(`http://127.0.0.1:8080/getProgress?uid=${params['uid']}&filename=${output}&step=${step}`)
+     fetch(`http://127.0.0.1:8080/getProgress?uid=${params['uid']}&filename=${filename}&step=${step}&value=${v}`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Network response was not ok');
@@ -85,7 +72,7 @@ class Video extends React.Component {
           if (response.status === 'running' || response.status === 'wait') {
             clearTimeout(this.timeoutId);
             this.timeoutId = setTimeout(() => {
-              this.checkProcess(step, suffix);
+              this.checkProcess(step, value);
             }, 3000);
           }
           }else {
@@ -138,18 +125,12 @@ class Video extends React.Component {
     const data = {...this.state.data};
     data[step] = v
     this.setState({data: data})
-    if (step === 2) {
-      clearTimeout(this.timeoutId);
-      this.checkProcess(step, v)
-    } else {
-      clearTimeout(this.timeoutId);
-      this.checkProcess(step)
-    }
-    
+    clearTimeout(this.timeoutId);
+    this.checkProcess(step, v)
   }
 
   nextStep = () => {
-    if (this.state.step === 6) {
+    if (this.state.step === 7) {
       return
     }
     this.setState({value: null})
@@ -168,18 +149,9 @@ class Video extends React.Component {
     const params = parseParam(window.location.hash);
     const uid = params['uid']
     const filename = params['filename']
-    const names = filename.split('.')
-    if (names.length !== 2) {
-      return
-    }
-    let output
-    if (step === 2) {
-      output = `${output}${step}.${this.state.data[step]}`
-    } else {
-      output = `${output}${step}.${names[1]}`
-    }
+    const value = this.state.data[step]
 
-    fetch(`http://127.0.0.1:8080/downloadVideo?uid=${uid}&step=${step}&filename=${output}`)
+    fetch(`http://127.0.0.1:8080/downloadVideo?uid=${uid}&step=${step}&filename=${filename}&value=${value}`)
     .then(response => {
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -195,9 +167,9 @@ class Video extends React.Component {
       const filename = params['filename']
       const names = filename.split('.')
       if (step === 2) { 
-        a.download = `${names[0]}_${step}.${this.state.data[2]}`
+        a.download = `${names[0]}${step}-${this.state.data[step]}.${this.state.data[2]}`
       }else {
-        a.download = `${names[0]}_${step}.${names[1]}`
+        a.download = `${names[0]}${step}-${this.state.data[step]}.${names[1]}`
       }
       
       document.body.appendChild(a);
@@ -267,7 +239,7 @@ class Video extends React.Component {
         </div>
       case 5:
         return <div style={{display: 'block'}}>
-          <div>5. Convert video format</div>
+          <div>5. Convert video resolution</div>
             <div style={{display: 'flex', marginTop: '50px'}}>
               <Select placeholder='Please Select Video Resolution' value={this.state.value} size="large" style={{width: '300px'}} onChange={(v)=>this.onChange(v, 5)}>
                 <Option value="640x360">640x360</Option>
@@ -288,16 +260,23 @@ class Video extends React.Component {
               <Option value="libvpx-vp9">VP9</Option>
               <Option value="libaom-av1">AV1</Option>
               <Option value="libtheora">Theora</Option>
-              {/* <Option value="444">VP9</Option>
-              <Option value="444">AV1</Option>
-              <Option value="444">MJPEG</Option>
-              <Option value="444">ProRes</Option>
-              <Option value="444">Theora</Option>
-              <Option value="444">Xvid</Option>
-              <Option value="444">WMV</Option> */}
             </Select>
             <Button size="large" style={{marginLeft: '10px'} } onClick={(v)=>this.handleClick(v, 6)}>Extract video</Button></div>
             {this.state.statusMap[6] ? this.state.statusMap[6] === 'running' ? <div style={{marginTop: '50px'}}>Extracting, Please Wait...</div> : this.state.statusMap[6] === 'done' ? <div style={{marginTop: '50px'}}><Button onClick={() => this.downloadVideo(6)}>Download Video</Button></div> : null : null}
+        </div>
+      case 7:
+        return <div style={{display: 'block'}}>
+        <div>7. Extract Audio</div>
+          <div style={{display: 'flex', marginTop: '50px'}}>
+          <Select placeholder='Please Select Audio Format' value={this.state.value} size="large" style={{width: '300px'}} onChange={(v)=>this.onChange(v, 7)}>
+              <Option value="wav">WAV</Option>
+              <Option value="mp3">MP3</Option>
+              <Option value="aac">AAC</Option>
+              <Option value="ogg">OGG</Option>
+              <Option value="wma">WMA</Option>
+            </Select>
+            <Button size="large" style={{marginLeft: '10px'} } onClick={(v)=>this.handleClick(v, 7)}>Extract Audio</Button></div>
+            {this.state.statusMap[7] ? this.state.statusMap[7] === 'running' ? <div style={{marginTop: '50px'}}>Extracting, Please Wait...</div> : this.state.statusMap[7] === 'done' ? <div style={{marginTop: '50px'}}><Button onClick={() => this.downloadVideo(7)}>Download Audio</Button></div> : null : null}
         </div>
     }
   }
@@ -316,7 +295,7 @@ class Video extends React.Component {
           </div>
           <div style={{marginTop: '50px', display: 'flex', justifyContent: "space-around"}}>
             {this.state.step > 1 ? <Button type='primary' text size='large' onClick={this.preStep}>Pre Step</Button> : null}
-            {this.state.step < 6 ? <Button type='primary' text size='large' onClick={this.nextStep}>Next Step</Button> : null}
+            {this.state.step < 7 ? <Button type='primary' text size='large' onClick={this.nextStep}>Next Step</Button> : null}
             </div>
       </div>
     );

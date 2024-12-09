@@ -20,4 +20,6 @@ go mod tidy
 go run commandServer.go
 
 
-命令说明
+命令说明:
+转换视频
+ffmpeg -i ./%s/%s -pix_fmt yuv%sp ./%s/output1.%s && touch ./%s/step1.end
