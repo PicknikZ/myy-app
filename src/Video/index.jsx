@@ -56,7 +56,7 @@ class Video extends React.Component {
     const v = value ? value : this.state.data[step]
     
     if (params['uid']) {
-     fetch(`http://127.0.0.1:8080/getProgress?uid=${params['uid']}&filename=${filename}&step=${step}&value=${v}`)
+     fetch(`http://192.168.178.52:8080/getProgress?uid=${params['uid']}&filename=${filename}&step=${step}&value=${v}`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Network response was not ok');
@@ -102,7 +102,7 @@ class Video extends React.Component {
     const uid = params['uid'];
     const filename = params['filename']
     const value = this.state.data[step];
-    fetch(`http://127.0.0.1:8080/${this.urlMap[step]}?uid=${uid}&value=${value}&filename=${filename}`)
+    fetch(`http://192.168.178.52:8080/${this.urlMap[step]}?uid=${uid}&value=${value}&filename=${filename}`)
     .then(response => {
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -151,7 +151,7 @@ class Video extends React.Component {
     const filename = params['filename']
     const value = this.state.data[step]
 
-    fetch(`http://127.0.0.1:8080/downloadVideo?uid=${uid}&step=${step}&filename=${filename}&value=${value}`)
+    fetch(`http://192.168.178.52:8080/downloadVideo?uid=${uid}&step=${step}&filename=${filename}&value=${value}`)
     .then(response => {
       if (!response.ok) {
         throw new Error('Network response was not ok');
