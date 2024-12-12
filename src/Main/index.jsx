@@ -69,7 +69,7 @@ class Main extends React.Component {
         const formData = new FormData();
         formData.append('file', file.originFileObj);
         // 使用fetch上传文件
-        fetch(`http://192.168.178.52:8080/uploadImage?uid=${uid}`, { // 替换为你的上传API端点
+        fetch(`http://127.0.0.1:8080/uploadImage?uid=${uid}`, { // 替换为你的上传API端点
             method: 'POST',
             body: formData,
         })
@@ -108,7 +108,7 @@ class Main extends React.Component {
             listType='text'
             limit={1}
             accept="video/*"
-            action="http://192.168.178.52:8080/uploadVideo"
+            action="http://127.0.0.1:8080/uploadVideo"
             // beforeUpload={beforeUpload}
             // onChange={onChange}
             onSuccess={this.onVideoSuccess}
@@ -125,7 +125,7 @@ class Main extends React.Component {
           listType='text'
           limit={1}
           accept="image/*"
-          action="http://192.168.178.52:8080/uploadVideo"
+          action="http://127.0.0.1:8080/uploadVideo"
           // beforeUpload={beforeUpload}
           // onChange={onChange}
           onSuccess={this.onImageSuccess}
@@ -142,7 +142,7 @@ class Main extends React.Component {
           listType='text'
           multiple
           accept="image/*"
-          // action="http://192.168.178.52:8080/uploadImage"
+          // action="http://127.0.0.1:8080/uploadImage"
           // beforeUpload={this.beforeUpload}
           onChange={this.onChange}
           onSuccess={this.onImageSuccess}
