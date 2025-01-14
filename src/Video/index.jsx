@@ -156,9 +156,14 @@ class Video extends React.Component {
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
-      return response.blob()
-    })
-    .then(blob => {
+      let suffix = ""
+      for (let [key, value] of response.headers.entries()) {
+        if (key.toLowerCase() === "filesuffix") {
+          suffix = value
+        }
+      }
+      return response.blob().then(blob => ({ blob, suffix }))
+    }).then(({blob, suffix}) => {
       const url = window.URL.createObjectURL(blob);
       // 创建一个<a>标签并模拟点击它
       const a = document.createElement('a');
@@ -169,7 +174,7 @@ class Video extends React.Component {
       if (step === 2) { 
         a.download = `${names[0]}${step}-${this.state.data[step]}.${this.state.data[2]}`
       }else {
-        a.download = `${names[0]}${step}-${this.state.data[step]}.${names[1]}`
+        a.download = `${names[0]}${step}-${this.state.data[step]}.${suffix}`
       }
       
       document.body.appendChild(a);
