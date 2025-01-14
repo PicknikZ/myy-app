@@ -617,6 +617,7 @@ func processVideoParam(r *http.Request, step int) (cmdStr string, output string)
 				return fmt.Sprintf("ffmpeg -i ./%s/%s -s %s ./%s/output5-%s.%s > ./%s/step5-%s.log 2>&1 && touch ./%s/step5-%s.end", uid, filename, value, uid, value, suffix, uid, value, uid, value), fmt.Sprintf("output5-%s.%s", value, suffix)
 			case 6:
 				filename, _ := findOutputFile(uid, 5, src_file)
+				suffix := GetExtension(filename)
 				return fmt.Sprintf("ffmpeg -i ./%s/%s -c:v %s ./%s/output6-%s.%s > ./%s/step6-%s.log 2>&1 && touch ./%s/step6-%s.end", uid, filename, value, uid, value, suffix, uid, value, uid, value), fmt.Sprintf("output6-%s.%s", value, suffix)
 			case 7:
 				filename, _ := findOutputFile(uid, 6, src_file)
