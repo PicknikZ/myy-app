@@ -574,15 +574,19 @@ func processVideoParam(r *http.Request, step int) (cmdStr string, output string)
 				return fmt.Sprintf("ffmpeg -i ./%s/%s -c:a copy ./%s/output2-%s.%s > ./%s/step2-%s.log 2>&1 && touch ./%s/step2-%s.end", uid, filename, uid, value, value, uid, value, uid, value), fmt.Sprintf("output2-%s.%s", value, value)
 			case 3:
 				filename, _ := findOutputFile(uid, 2, src_file)
+				suffix = GetExtension(filename)
 				return fmt.Sprintf("ffmpeg -i ./%s/%s -b:v %s ./%s/output3-%s.%s > ./%s/step3-%s.log 2>&1 && touch ./%s/step3-%s.end", uid, filename, value, uid, value, suffix, uid, value, uid, value), fmt.Sprintf("output3-%s.%s", value, suffix)
 			case 4:
 				filename, _ := findOutputFile(uid, 3, src_file)
+				suffix = GetExtension(filename)
 				return fmt.Sprintf("ffmpeg -i ./%s/%s -r %s ./%s/output4-%s.%s > ./%s/step4-%s.log 2>&1 && touch ./%s/step4-%s.end", uid, filename, value, uid, value, suffix, uid, value, uid, value), fmt.Sprintf("output4-%s.%s", value, suffix)
 			case 5:
 				filename, _ := findOutputFile(uid, 4, src_file)
+				suffix = GetExtension(filename)
 				return fmt.Sprintf("ffmpeg -i ./%s/%s -s %s ./%s/output5-%s.%s > ./%s/step5-%s.log 2>&1 && touch ./%s/step5-%s.end", uid, filename, value, uid, value, suffix, uid, value, uid, value), fmt.Sprintf("output5-%s.%s", value, suffix)
 			case 6:
 				filename, _ := findOutputFile(uid, 5, src_file)
+				suffix = GetExtension(filename)
 				return fmt.Sprintf("ffmpeg -i ./%s/%s -c:v %s ./%s/output6-%s.%s > ./%s/step6-%s.log 2>&1 && touch ./%s/step6-%s.end", uid, filename, value, uid, value, suffix, uid, value, uid, value), fmt.Sprintf("output6-%s.%s", value, suffix)
 			case 7:
 				filename, _ := findOutputFile(uid, 6, src_file)
@@ -609,9 +613,11 @@ func processImageParam(r *http.Request, step int) (cmdStr string, output string)
 				return fmt.Sprintf("ffmpeg -i ./%s/%s ./%s/output2-%s.%s > ./%s/step2-%s.log 2>&1 && touch ./%s/step2-%s.end", uid, filename, uid, value, value, uid, value, uid, value), fmt.Sprintf("output2-%s.%s", value, value)
 			case 3:
 				filename, _ := findOutputFile(uid, 2, src_file)
+				suffix = GetExtension(filename)
 				return fmt.Sprintf("ffmpeg -i ./%s/%s -s %s ./%s/output3-%s.%s > ./%s/step3-%s.log 2>&1 && touch ./%s/step3-%s.end", uid, filename, value, uid, value, suffix, uid, value, uid, value), fmt.Sprintf("output3-%s.%s", value, suffix)
 			case 4:
 				filename, _ := findOutputFile(uid, 3, src_file)
+				suffix = GetExtension(filename)
 				return fmt.Sprintf("ffmpeg -loop 1 -i ./%s/%s -c:v libx264 -t %s -pix_fmt yuv420p ./%s/output4-%s.mp4 > ./%s/step4-%s.log 2>&1 && touch ./%s/step4-%s.end", uid, filename, value, uid, value, uid, value, uid, value), fmt.Sprintf("output4-%s.%s", value, suffix)
 			}
 		}
