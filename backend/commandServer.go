@@ -106,6 +106,26 @@ func findOutputFile(dir string, step int, filename string) (string, error) {
 	return findOutputFile(dir, step-1, filename)
 }
 
+func findFile(dir, prefix string) (string, error) {
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		fmt.Printf("Error reading directory: %v\n", err)
+		return "", err
+	}
+
+	for _, file := range files {
+		if file.IsDir() {
+			continue // 跳过文件夹
+		}
+		fileName := file.Name()
+		if strings.HasPrefix(fileName, prefix) {
+			fmt.Println(fileName)
+			return fileName, nil
+		}
+	}
+	return "", fmt.Errorf("file not found: %s", prefix)
+}
+
 func addCORSMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// 设置CORS头
@@ -471,18 +491,23 @@ func getProgress(w http.ResponseWriter, r *http.Request) {
 	uid := r.URL.Query().Get("uid")
 	step := r.URL.Query().Get("step")
 	value := r.URL.Query().Get("value")
-	filename := r.URL.Query().Get("filename")
+	// filename := r.URL.Query().Get("filename")
 	if value == "" {
 		resp := ProgressResponse{Code: 0, Status: "wait"}
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
-	suffix := GetExtension(filename)
 	outputFilename := ""
 	if step == "2" || step == "7" {
 		outputFilename = fmt.Sprintf("output%s-%s.%s", step, value, value)
 	} else {
-		outputFilename = fmt.Sprintf("output%s-%s.%s", step, value, suffix)
+		filePrefix := fmt.Sprintf("output%s-%s", step, value)
+		outputFilename, _ = findFile(uid, filePrefix)
+		if outputFilename == "" {
+			resp := ProgressResponse{Code: 0, Status: "wait"}
+			json.NewEncoder(w).Encode(resp)
+			return
+		}
 	}
 	output := fmt.Sprintf("./%s/%s", uid, outputFilename)
 	_, err := os.Stat(output)
@@ -516,20 +541,26 @@ func getImageProgress(w http.ResponseWriter, r *http.Request) {
 	uid := r.URL.Query().Get("uid")
 	step := r.URL.Query().Get("step")
 	value := r.URL.Query().Get("value")
-	filename := r.URL.Query().Get("filename")
+	// filename := r.URL.Query().Get("filename")
 	if value == "" {
 		resp := ProgressResponse{Code: 0, Status: "wait"}
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
-	suffix := GetExtension(filename)
+	// suffix := GetExtension(filename)
 	outputFilename := ""
 	if step == "2" {
 		outputFilename = fmt.Sprintf("output%s-%s.%s", step, value, value)
 	} else if step == "4" {
 		outputFilename = fmt.Sprintf("output%s-%s.%s", step, value, "mp4")
 	} else {
-		outputFilename = fmt.Sprintf("output%s-%s.%s", step, value, suffix)
+		filePrefix := fmt.Sprintf("output%s-%s", step, value)
+		outputFilename, _ = findFile(uid, filePrefix)
+		if outputFilename == "" {
+			resp := ProgressResponse{Code: 0, Status: "wait"}
+			json.NewEncoder(w).Encode(resp)
+			return
+		}
 	}
 	output := fmt.Sprintf("./%s/%s", uid, outputFilename)
 	_, err := os.Stat(output)
@@ -561,8 +592,8 @@ func getImageProgress(w http.ResponseWriter, r *http.Request) {
 func processVideoParam(r *http.Request, step int) (cmdStr string, output string) {
 	args := r.URL.Query()
 	if uid := args.Get("uid"); uid != "" {
-		src_file := args.Get("filename")
-		filename := src_file
+		filename := args.Get("filename")
+		src_file := filename
 		fmt.Println("filename:", filename)
 		suffix := GetExtension(filename)
 		if value := args.Get("value"); value != "" {
@@ -574,19 +605,18 @@ func processVideoParam(r *http.Request, step int) (cmdStr string, output string)
 				return fmt.Sprintf("ffmpeg -i ./%s/%s -c:a copy ./%s/output2-%s.%s > ./%s/step2-%s.log 2>&1 && touch ./%s/step2-%s.end", uid, filename, uid, value, value, uid, value, uid, value), fmt.Sprintf("output2-%s.%s", value, value)
 			case 3:
 				filename, _ := findOutputFile(uid, 2, src_file)
-				suffix = GetExtension(filename)
+				suffix := GetExtension(filename)
 				return fmt.Sprintf("ffmpeg -i ./%s/%s -b:v %s ./%s/output3-%s.%s > ./%s/step3-%s.log 2>&1 && touch ./%s/step3-%s.end", uid, filename, value, uid, value, suffix, uid, value, uid, value), fmt.Sprintf("output3-%s.%s", value, suffix)
 			case 4:
 				filename, _ := findOutputFile(uid, 3, src_file)
-				suffix = GetExtension(filename)
+				suffix := GetExtension(filename)
 				return fmt.Sprintf("ffmpeg -i ./%s/%s -r %s ./%s/output4-%s.%s > ./%s/step4-%s.log 2>&1 && touch ./%s/step4-%s.end", uid, filename, value, uid, value, suffix, uid, value, uid, value), fmt.Sprintf("output4-%s.%s", value, suffix)
 			case 5:
 				filename, _ := findOutputFile(uid, 4, src_file)
-				suffix = GetExtension(filename)
+				suffix := GetExtension(filename)
 				return fmt.Sprintf("ffmpeg -i ./%s/%s -s %s ./%s/output5-%s.%s > ./%s/step5-%s.log 2>&1 && touch ./%s/step5-%s.end", uid, filename, value, uid, value, suffix, uid, value, uid, value), fmt.Sprintf("output5-%s.%s", value, suffix)
 			case 6:
 				filename, _ := findOutputFile(uid, 5, src_file)
-				suffix = GetExtension(filename)
 				return fmt.Sprintf("ffmpeg -i ./%s/%s -c:v %s ./%s/output6-%s.%s > ./%s/step6-%s.log 2>&1 && touch ./%s/step6-%s.end", uid, filename, value, uid, value, suffix, uid, value, uid, value), fmt.Sprintf("output6-%s.%s", value, suffix)
 			case 7:
 				filename, _ := findOutputFile(uid, 6, src_file)
@@ -600,8 +630,8 @@ func processVideoParam(r *http.Request, step int) (cmdStr string, output string)
 func processImageParam(r *http.Request, step int) (cmdStr string, output string) {
 	args := r.URL.Query()
 	if uid := args.Get("uid"); uid != "" {
-		src_file := args.Get("filename")
-		filename := src_file
+		filename := args.Get("filename")
+		src_file := filename
 		fmt.Println("filename:", filename)
 		suffix := GetExtension(filename)
 		if value := args.Get("value"); value != "" {
@@ -613,11 +643,11 @@ func processImageParam(r *http.Request, step int) (cmdStr string, output string)
 				return fmt.Sprintf("ffmpeg -i ./%s/%s ./%s/output2-%s.%s > ./%s/step2-%s.log 2>&1 && touch ./%s/step2-%s.end", uid, filename, uid, value, value, uid, value, uid, value), fmt.Sprintf("output2-%s.%s", value, value)
 			case 3:
 				filename, _ := findOutputFile(uid, 2, src_file)
-				suffix = GetExtension(filename)
+				suffix := GetExtension(filename)
 				return fmt.Sprintf("ffmpeg -i ./%s/%s -s %s ./%s/output3-%s.%s > ./%s/step3-%s.log 2>&1 && touch ./%s/step3-%s.end", uid, filename, value, uid, value, suffix, uid, value, uid, value), fmt.Sprintf("output3-%s.%s", value, suffix)
 			case 4:
 				filename, _ := findOutputFile(uid, 3, src_file)
-				suffix = GetExtension(filename)
+				suffix := GetExtension(filename)
 				return fmt.Sprintf("ffmpeg -loop 1 -i ./%s/%s -c:v libx264 -t %s -pix_fmt yuv420p ./%s/output4-%s.mp4 > ./%s/step4-%s.log 2>&1 && touch ./%s/step4-%s.end", uid, filename, value, uid, value, uid, value, uid, value), fmt.Sprintf("output4-%s.%s", value, suffix)
 			}
 		}
