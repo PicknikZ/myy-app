@@ -262,9 +262,9 @@ func downloadImage(w http.ResponseWriter, r *http.Request) {
 	args := r.URL.Query()
 	if uid := args.Get("uid"); uid != "" {
 		step := args.Get("step")
-		filename := args.Get("filename")
+		// filename := args.Get("filename")
 		value := args.Get("value")
-		suffix := GetExtension(filename)
+		// suffix := GetExtension(filename)
 
 		outputFilename := ""
 		if step == "2" {
@@ -272,7 +272,8 @@ func downloadImage(w http.ResponseWriter, r *http.Request) {
 		} else if step == "4" {
 			outputFilename = fmt.Sprintf("output%s-%s.%s", step, value, "mp4")
 		} else {
-			outputFilename = fmt.Sprintf("output%s-%s.%s", step, value, suffix)
+			filePrefix := fmt.Sprintf("output%s-%s", step, value)
+			outputFilename, _ = findFile(uid, filePrefix)
 		}
 		output := fmt.Sprintf("./%s/%s", uid, outputFilename)
 		// 打开文件
@@ -294,7 +295,8 @@ func downloadImage(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "video/x-msvideo") // 或者根据文件类型设置正确的MIME类型
 		w.Header().Set("Content-Disposition", "attachment; filename="+fileInfo.Name())
 		w.Header().Set("Content-Length", strconv.FormatInt(fileInfo.Size(), 10))
-
+		w.Header().Set("FileSuffix", GetExtension(outputFilename))
+		w.Header().Set("Access-Control-Expose-Headers", "Content-Disposition,FileSuffix")
 		// 将文件内容复制到响应体
 		_, err = io.Copy(w, file)
 		if err != nil {
@@ -383,15 +385,16 @@ func downloadVideo(w http.ResponseWriter, r *http.Request) {
 	args := r.URL.Query()
 	if uid := args.Get("uid"); uid != "" {
 		step := args.Get("step")
-		filename := args.Get("filename")
+		// filename := args.Get("filename")
 		value := args.Get("value")
-		suffix := GetExtension(filename)
+		// suffix := GetExtension(filename)
 
 		outputFilename := ""
 		if step == "2" || step == "7" {
 			outputFilename = fmt.Sprintf("output%s-%s.%s", step, value, value)
 		} else {
-			outputFilename = fmt.Sprintf("output%s-%s.%s", step, value, suffix)
+			filePrefix := fmt.Sprintf("output%s-%s", step, value)
+			outputFilename, _ = findFile(uid, filePrefix)
 		}
 		output := fmt.Sprintf("./%s/%s", uid, outputFilename)
 		// 打开文件
@@ -411,9 +414,10 @@ func downloadVideo(w http.ResponseWriter, r *http.Request) {
 
 		// 设置响应头
 		w.Header().Set("Content-Type", "video/x-msvideo") // 或者根据文件类型设置正确的MIME类型
-		w.Header().Set("Content-Disposition", "attachment; filename="+fileInfo.Name())
+		w.Header().Set("Content-Disposition", "filename="+fileInfo.Name())
 		w.Header().Set("Content-Length", strconv.FormatInt(fileInfo.Size(), 10))
-
+		w.Header().Set("FileSuffix", GetExtension(outputFilename))
+		w.Header().Set("Access-Control-Expose-Headers", "Content-Disposition,FileSuffix")
 		// 将文件内容复制到响应体
 		_, err = io.Copy(w, file)
 		if err != nil {
